@@ -15,6 +15,19 @@ class AppiumExtend(AppiumLibrary):
     def __init__(self):
         AppiumLibrary.__init__(self)
 
+    def clear_until_no_error(self, locator, message="", timeout=None):
+        """Try clear `text` in text field identified by `locator` until no error occurred.
+        
+        Fails if `timeout` expires before the clear success.
+        
+        Examples:
+        | Clear Until No Error |               |                |     |
+        | Clear Until No Error | name=username | clear username | 10s |
+        """
+        if not message:
+            message = "Clear text field '%s'" % (locator)
+        self._wait_until_no_error_fixed(timeout, True, message, self.clear_text, locator)
+        
     def input_until_no_error(self, locator, text, message="", timeout=None): 
         """Try types the given `text` into text field identified by `locator` until no error occurred.
         
@@ -45,34 +58,102 @@ class AppiumExtend(AppiumLibrary):
         """Click the nth element identified by `locator`.
         
         Examples:
-        | #Click the 2th element |            |   |
-        | Click Nth Element      | name=Login | 2 |
+        | #Click the 2th element |                             |    |
+        | Click Nth Element      | class=android.widget.Button |  2 |
+        | #Click last element    |                             |    |
+        | Click Nth Element      | class=android.widget.Button | -1 |
         """
         try:
             nth = int(nth)
         except ValueError, e:
             raise ValueError(u"'%s' is not a number" % (nth))
-        if nth <= 0:
-            raise ValueError(u"'nth' must bigger then 0")
-        elements = self.get_webelements(locator)
+        if nth == 0:
+            raise ValueError(u"'nth' must not equal 0")
+        elements = self.get_elements(locator)
         self._info("Clicking %dth element '%s'" % (nth, locator))
-        elements[nth-1].click()
-        
+        if nth > 0:
+            elements[nth-1].click()
+        elif nth < 0:
+            elements[nth].click()
+            
     def click_nth_until_no_error(self, locator, nth=1, message="", timeout=None):
         """Click the nth element identified by `locator` until no error occurred.
         
         Fails if `timeout` expires before the click success.
         
         Examples:
-        | #Click the 2th element   |                             |   |                  |     |
-        | Click Nth Until No Error | class=android.widget.Button | 2 |                  |     |
-        | Click Nth Until No Error | class=android.widget.Button | 2 | click second btn | 10s |
-        
+        | #Click the 2th element   |                             |    |                |     |
+        | Click Nth Until No Error | class=android.widget.Button |  2 |                |     |
+        | #Click last element      |                             |    |                |     |
+        | Click Nth Until No Error | class=android.widget.Button | -1 | click last btn | 10s |
         """
         if not message:
             message = "Clicking %sth element '%s'" % (nth, locator)
         self._wait_until_no_error_fixed(timeout, True, message, self.click_nth_element, locator, nth)
 
+    def click_until_element_exists(self, locator, wait_locator, message="", timeout=None):
+        """Click element identified by `locator` until element identified by `wait_locator` appear.
+        
+        Fails if `timeout` expires before element identified by `wait_locator` appear.
+        
+        Examples:
+        | Click Until Element Exists | name=first | name=twice |                                    |     |
+        | Click Until Element Exists | name=first | name=twice | Click 'first' until 'twice' appear | 10s |
+        """
+        if not message:
+            message = "Clicking element '%s' until element '%s' appear" % (locator, wait_locator)
+        def click_if_not_exists():
+            try:
+                self.click_element(locator)
+            except:
+                pass
+            self.page_should_contain_element(wait_locator)
+        self._wait_until_no_error_fixed(timeout, True, message, click_if_not_exists)
+    
+    def click_nth_until_element_exists(self, locator, nth, wait_locator, message="", timeout=None):
+        """Click the nth element identified by `locator` until element identified by `wait_locator` appear.
+        
+        Fails if `timeout` expires before element identified by `wait_locator` appear.
+        
+        Examples:
+        | Click Nth Until Element Exists | name=test1 |  2 | name=test2 |                                         |     |
+        | Click Nth Until Element Exists | name=test1 | -1 | name=test2 | Click last 'test1' until 'test2' appear | 10s |
+        """
+        if not message:
+            message = "Clicking %sth element '%s' until element '%s' appear" % (nth, locator, wait_locator)
+        def click_nth_if_not_exists():
+            try:
+                self.click_nth_element(locator, nth)
+            except:
+                pass
+            self.page_should_contain_element(wait_locator)
+        self._wait_until_no_error_fixed(timeout, True, message, click_nth_if_not_exists)
+        
+    def scroll_continue_no_error(self, locator_list, message=""):
+        """Scrolls from one element to another.
+        
+        Do not raise error if any step failed.
+        
+        Examples
+        | Scroll Continue No Error | name=first,name=twice,name=third |                            |
+        | Scroll Continue No Error | name=first,name=twice,name=third | Scroll first->twice->third |
+        """
+        if not isinstance(locator_list, list):
+            _locator_list = self._convert_to_list(locator_list)
+        if not message:
+            message = "Scrolling [%s]" % ("->".join(_locator_list))
+        flag = True
+        for index in range(len(_locator_list)-1, 0, -1):
+            try:
+                self.scroll(_locator_list[index-1], _locator_list[index])
+            except:
+                flag = False
+                continue
+        if flag:
+            self._info(u"%s ==> PASS." % (message))
+        else:
+            self._info(u"%s ==> NOT ALL PASS." % (message))
+            
     def click_if_exists_in_time(self, locator, message="", timeout=None):
         """Try click element identified by `locator` in setting time.
         
@@ -84,7 +165,7 @@ class AppiumExtend(AppiumLibrary):
         """
         if not message:
             message = "Clicking element '%s'" % locator
-        self._wait_until_no_error_fixed(timeout, False, message, self.click_element, locator)
+        return self._wait_until_no_error_fixed(timeout, False, message, self.click_element, locator)
         
     def double_click_until_no_error(self, locator, message="", timeout=None):  
         """Try double click element identified by `locator` until no error occurred.
@@ -109,13 +190,26 @@ class AppiumExtend(AppiumLibrary):
         """
         return self._is_element_present(locator)
     
-    def get_element_count(self, locator):
+    def get_element_attribute_in_time(self, locator, attribute, message="", timeout=None):
+        """Get element attribute using given attribute: name, value,... by `locator` until no error occurred.
+        
+        Fails if `timeout` expires before the click success.
+        
+        Examples:
+        | Get Element Attribute In Time | id=com.xx/id/what | text |                  |     |
+        | Get Element Attribute In Time | id=com.xx/id/what | text | get element name | 10s |
+        """
+        if not message:
+            message = "Element locator '%s' did not match any elements." % locator
+        return self._wait_until_no_error_fixed(timeout, True, message, self.get_element_attribute, locator, attribute)
+    
+    def get_element_count(self, locator, fail_on_error=True):
         """Count elements found by `locator`.
         
         Examples:
         | ${count}= | Get Element Count | class=android.widget.Button |
         """
-        return len(self.get_elements(locator))
+        return len(self.get_elements(locator, fail_on_error=fail_on_error))
 
     def get_element_count_in_time(self, locator, message="", timeout=None):
         """Count elements found by `locator` until result is not 0.
@@ -156,12 +250,13 @@ class AppiumExtend(AppiumLibrary):
     
     def wait_until_page_contains_elements(self, locator_list, message="", timeout=None):
         """Waits until any element specified with `locator_list` appears on current page.
-
+        
+        Return appear locator if found.
         Fails if `timeout` expires before the element appears.
         
         Examples:
-        | Wait Until Page Contains Elements | name=unlogin, name=login   |                       |     |
-        | Wait Until Page Contains Elements | [name=unlogin, name=login] | wait elements appears | 10s |
+        | Wait Until Page Contains Elements | name=unlogin, name=login          |                            |                       |     |
+        | ${appear_locator}=                | Wait Until Page Contains Elements | [name=unlogin, name=login] | wait elements appears | 10s |
         """
         if not isinstance(locator_list, list):
             _locator_list = self._convert_to_list(locator_list)
@@ -175,7 +270,7 @@ class AppiumExtend(AppiumLibrary):
             for locator in _locator_list:
                 if self._is_element_present(locator):
                     self._info(u"%s ==> PASS." % (message))
-                    break
+                    return locator
             else:
                 if time.time() > maxtime:
                     raise AssertionError(u"%s ==> FAIL." % (message))
@@ -204,14 +299,14 @@ class AppiumExtend(AppiumLibrary):
             if time.time() > maxtime:
                 if not fail_raise_error:
                     self._info(u"%s ==> NOT PASS." % (message))
-                    break
+                    return False
                 else:
                     raise AssertionError(u"%s ==> FAIL." % (message))
                     break
             time.sleep(0.5)
     
     def _wait_until_not_value(self, timeout, value, fail_raise_error, message, wait_func, *args):
-        timeout = robot.utils.timestr_to_secs(timeout) if timeout is not None else 15
+        timeout = robot.utils.timestr_to_secs(timeout) if timeout is not None else 20
         maxtime = time.time() + timeout
         while True:
             res = wait_func(*args)
