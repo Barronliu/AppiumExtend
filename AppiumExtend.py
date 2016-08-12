@@ -7,6 +7,9 @@ import sys, time, re, os
 reload(sys)
 sys.setdefaultencoding('utf8')
 
+#set default timeout
+TIMEOUT=15
+
 class AppiumExtend(AppiumLibrary):
 
     ROBOT_LIBRARY_SCOPE = 'Global'
@@ -15,7 +18,7 @@ class AppiumExtend(AppiumLibrary):
     def __init__(self):
         AppiumLibrary.__init__(self)
 
-    def clear_until_no_error(self, locator, message="", timeout=None):
+    def clear_until_no_error(self, locator, message="", timeout=TIMEOUT):
         """Try clear `text` in text field identified by `locator` until no error occurred.
         
         Fails if `timeout` expires before the clear success.
@@ -28,7 +31,7 @@ class AppiumExtend(AppiumLibrary):
             message = "Clear text field '%s'" % (locator)
         self._wait_until_no_error_fixed(timeout, True, message, self.clear_text, locator)
         
-    def input_until_no_error(self, locator, text, message="", timeout=None): 
+    def input_until_no_error(self, locator, text, message="", timeout=TIMEOUT): 
         """Try types the given `text` into text field identified by `locator` until no error occurred.
         
         Fails if `timeout` expires before the input success.
@@ -41,7 +44,7 @@ class AppiumExtend(AppiumLibrary):
             message = "Typing text '%s' into text field '%s'" % (text, locator)
         self._wait_until_no_error_fixed(timeout, True, message, self.input_text, locator, text)
     
-    def click_until_no_error(self, locator, message="", timeout=None):
+    def click_until_no_error(self, locator, message="", timeout=TIMEOUT):
         """Try click element identified by `locator` until no error occurred.
         
         Fails if `timeout` expires before the click success.
@@ -76,7 +79,7 @@ class AppiumExtend(AppiumLibrary):
         elif nth < 0:
             elements[nth].click()
             
-    def click_nth_until_no_error(self, locator, nth=1, message="", timeout=None):
+    def click_nth_until_no_error(self, locator, nth=1, message="", timeout=TIMEOUT):
         """Click the nth element identified by `locator` until no error occurred.
         
         Fails if `timeout` expires before the click success.
@@ -91,7 +94,7 @@ class AppiumExtend(AppiumLibrary):
             message = "Clicking %sth element '%s'" % (nth, locator)
         self._wait_until_no_error_fixed(timeout, True, message, self.click_nth_element, locator, nth)
 
-    def click_until_element_exists(self, locator, wait_locator, message="", timeout=None):
+    def click_until_element_exists(self, locator, wait_locator, message="", timeout=TIMEOUT):
         """Click element identified by `locator` until element identified by `wait_locator` appear.
         
         Fails if `timeout` expires before element identified by `wait_locator` appear.
@@ -110,7 +113,7 @@ class AppiumExtend(AppiumLibrary):
             self.page_should_contain_element(wait_locator)
         self._wait_until_no_error_fixed(timeout, True, message, click_if_not_exists)
     
-    def click_nth_until_element_exists(self, locator, nth, wait_locator, message="", timeout=None):
+    def click_nth_until_element_exists(self, locator, nth, wait_locator, message="", timeout=TIMEOUT):
         """Click the nth element identified by `locator` until element identified by `wait_locator` appear.
         
         Fails if `timeout` expires before element identified by `wait_locator` appear.
@@ -154,7 +157,7 @@ class AppiumExtend(AppiumLibrary):
         else:
             self._info(u"%s ==> NOT ALL PASS." % (message))
             
-    def click_if_exists_in_time(self, locator, message="", timeout=None):
+    def click_if_exists_in_time(self, locator, message="", timeout=TIMEOUT):
         """Try click element identified by `locator` in setting time.
         
         Ignore if `timeout` expires before the click success.
@@ -167,7 +170,7 @@ class AppiumExtend(AppiumLibrary):
             message = "Clicking element '%s'" % locator
         return self._wait_until_no_error_fixed(timeout, False, message, self.click_element, locator)
         
-    def double_click_until_no_error(self, locator, message="", timeout=None):  
+    def double_click_until_no_error(self, locator, message="", timeout=TIMEOUT):  
         """Try double click element identified by `locator` until no error occurred.
         
         Fails if `timeout` expires before the click success.
@@ -190,7 +193,7 @@ class AppiumExtend(AppiumLibrary):
         """
         return self._is_element_present(locator)
     
-    def get_element_attribute_in_time(self, locator, attribute, message="", timeout=None):
+    def get_element_attribute_in_time(self, locator, attribute, message="", timeout=TIMEOUT):
         """Get element attribute using given attribute: name, value,... by `locator` until no error occurred.
         
         Fails if `timeout` expires before the click success.
@@ -211,7 +214,7 @@ class AppiumExtend(AppiumLibrary):
         """
         return len(self.get_elements(locator, fail_on_error=fail_on_error))
 
-    def get_element_count_in_time(self, locator, message="", timeout=None):
+    def get_element_count_in_time(self, locator, message="", timeout=TIMEOUT):
         """Count elements found by `locator` until result is not 0.
         
         Return 0 if `timeout` expires.
@@ -222,7 +225,7 @@ class AppiumExtend(AppiumLibrary):
         """
         return self._wait_until_not_value(timeout, 0, False, message, self.get_element_count, locator)
     
-    def page_should_contain_text_in_time(self, text, message="", timeout=None):
+    def page_should_contain_text_in_time(self, text, message="", timeout=TIMEOUT):
         """Verifies text is not found on the current page in setting time.
         
         Fails if `timeout` expires before find page contain text.
@@ -232,10 +235,10 @@ class AppiumExtend(AppiumLibrary):
         | Page Should Contain Text In Time | hello world | check page | 10s |
         """
         if not message:
-            message = "Page should have contained text '%s'" % (text)
+            message = "Page should have contained text '%s' in %s" % (text, self._format_timeout(timeout))
         self._wait_until_no_error_fixed(timeout, True, message, self.page_should_contain, text, 'NONE')
 
-    def page_should_contain_element_in_time(self, locator, message="", timeout=None):
+    def page_should_contain_element_in_time(self, locator, message="", timeout=TIMEOUT):
         """Verifies element identified by `locator` is not found on the current page in setting time.
         
         Fails if `timeout` expires before find page contain locator element.
@@ -245,10 +248,10 @@ class AppiumExtend(AppiumLibrary):
         | Page Should Contain Element In Time | name=Login | check login button exist | 10s |
         """
         if not message:
-            message = "Page should have contained element '%s'" % (locator)
+            message = "Page should have contained element '%s' in %s" % (locator, self._format_timeout(timeout))
         self._wait_until_no_error_fixed(timeout, True, message, self.page_should_contain_element, locator, 'NONE')
     
-    def wait_until_page_contains_elements(self, locator_list, message="", timeout=None):
+    def wait_until_page_contains_elements(self, locator_list, message="", timeout=TIMEOUT):
         """Waits until any element specified with `locator_list` appears on current page.
         
         Return appear locator if found.
@@ -260,7 +263,7 @@ class AppiumExtend(AppiumLibrary):
         """
         if not isinstance(locator_list, list):
             _locator_list = self._convert_to_list(locator_list)
-        message_info = "Wait Page contains %s" % (" or ".join(["'"+i+"'" for i in _locator_list]))
+        message_info = "Wait Page contains %s in %s" % (" or ".join(["'"+i+"'" for i in _locator_list]), self._format_timeout(timeout))
         if not message:
             message = message_info
         self._info(u"%s." % (message_info))
